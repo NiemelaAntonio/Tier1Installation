@@ -1,0 +1,53 @@
+easyblock = 'MakeCp'
+
+name = 'coco'
+version = 'py3-branch-commit-77ed3e7-2019-09-11'
+
+homepage = 'https://github.com/jpomoell/coco'
+description = """CoCo is intended to be a light-weight, extensible, robust and easy to use solver
+for hyperbolic conservation law-type equations."""
+
+toolchain = {'name': 'foss', 'version': '2021b'}
+toolchainopts = {'cstd': 'c++14'}
+
+sources = ['coco-%(version)s.tar.gz']
+
+dependencies = [
+    ('Python', '3.9.6'),
+    ('SciPy-bundle', '2021.10'),  # provides numpy, mpi4py
+    ('matplotlib', '3.4.3'),
+    ('Boost', '1.77.0'),
+    ('namedlist', '1.8'),
+    ('PyEVTK', '1.4.1'),
+]
+
+# remove external/boost to ensure that Boost included as dependency is used
+prebuildopts = "rm -r external/boost && "
+
+# unload recent pybind11 since it results in compilation errors for external/xtensor-python;
+# using recent xtensor(-python) doesn't work due to API changes that coco has not taken into account yet
+prebuildopts += "module unload pybind11 && "
+
+buildopts = '-f makefiles/template.make COCODIR=$PWD '
+buildopts += 'CXX="$CXX" CXXFLAGS="$CXXFLAGS -DNDEBUG" LIBS="-lpython%(pyshortver)s" '
+buildopts += 'PYTHONDIR=$EBROOTPYTHON/include/python%(pyshortver)s PYTHONLIBDIR=$EBROOTPYTHON/lib '
+buildopts += 'NUMPYINCLUDEDIR=$EBROOTSCIPYMINBUNDLE/lib/python%(pyshortver)s/site-packages/numpy/core/include '
+
+files_to_copy = ['coco', 'external']
+
+local_coco_subdirs = ['core', 'geometry', 'io', 'physics', 'reconstruction', 'rsolvers', 'sim', 'solvers', 'tools']
+
+sanity_check_paths = {
+    'files': ['coco/solvers/euler/kernels/ideal.%s' % SHLIB_EXT, 'coco/solvers/mhd/kernels/ideal.%s' % SHLIB_EXT],
+    'dirs': ['coco/%s' % x for x in local_coco_subdirs],
+}
+
+sanity_check_commands = [
+    "python3 -c 'import coco'",
+    "python3 -c 'import coco.solvers.euler.kernels'",
+    "python3 -c 'import coco.solvers.mhd.kernels'",
+]
+
+modextrapaths = {'PYTHONPATH': ''}
+
+moduleclass = 'math'

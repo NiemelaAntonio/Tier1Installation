@@ -1,0 +1,56 @@
+easyblock = 'MakeCp'
+
+name = 'EUHFORIA'
+version = 'py3_cmpa'
+
+homepage = 'https://github.com/jpomoell/euhforia'
+description = "EUHFORIA: EUropean Heliospheric FORecasting Information Asset."
+
+toolchain = {'name': 'foss', 'version': '2021b'}
+toolchainopts = {'pic': True}
+
+sources = ['euhforia-%(version)s.tar.gz']
+
+dependencies = [
+    ('Python', '3.9.6'),
+    ('SciPy-bundle', '2021.10'),  # provides numpy, mpi4py
+    ('namedlist', '1.8'),
+    ('SunPy', '1.1.4'),
+    ('SHTns', '3.5.1'),
+    ('BeautifulSoup', '4.10.0'),
+    ('PyEVTK', '1.4.1'),
+    ('ai.fri3d', '0.0.16'),
+    ('coco', 'py3-branch-commit-77ed3e7-2019-09-11'),
+]
+
+prebuildopts = 'cd external/pyfishpack && make COMPILEDEP="$FC -c -fdefault-real-8 $FFLAGS -fallow-argument-mismatch" && cd - && '
+
+# unload recent pybind11 since it results in compilation errors for external/xtensor-python;
+# using recent xtensor(-python) doesn't work due to API changes that coco has not taken into account yet
+prebuildopts += "module unload pybind11 && "
+
+buildopts = '-f makefiles/template.make COCODIR=$EBROOTCOCO '
+buildopts += 'CXX="$CXX" CXXFLAGS="$CXXFLAGS -DNDEBUG" LIBS="-lpython%(pyshortver)s" '
+buildopts += 'PYTHONDIR=$EBROOTPYTHON/include/python%(pyshortver)s PYTHONLIBDIR=$EBROOTPYTHON/lib '
+buildopts += 'NUMPYINCLUDEDIR=$EBROOTSCIPYMINBUNDLE/lib/python%(pyshortver)s/site-packages/numpy/core/include '
+
+files_to_copy = [
+    'euhforia',
+    (['external/pyfishpack/pyfishpack/*.so', 'external/pyfishpack/pyfishpack/*.py'], 'pyfishpack'),
+]
+
+local_euhforia_subdirs = ['cme', 'core', 'corona', 'heliosphere', 'insitu', 'magnetogram', 'orbit', 'plot', 'tools']
+
+sanity_check_paths = {
+    'files': ['pyfishpack/pyfishpack.py'],
+    'dirs': ['euhforia/%s' % x for x in local_euhforia_subdirs],
+}
+
+sanity_check_commands = [
+    "python3 -c 'import euhforia'",
+    "python3 -c 'import pyfishpack'",
+]
+
+modextrapaths = {'PYTHONPATH': ''}
+
+moduleclass = 'math'
